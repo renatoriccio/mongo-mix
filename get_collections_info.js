@@ -21,7 +21,7 @@ db.getSiblingDB("config").getCollection("collections").find({key: {$exists: true
     sharded_collection.push(d._id)
 })
 
-db.adminCommand({listDatabases: 1}).databases.forEach(function(d) {
+db.adminCommand({listDatabases: 1, nameOnly: true}).databases.forEach(function(d) {
     var database = db.getSiblingDB(d.name);  
     database.getCollectionNames().forEach(function(c) { 
         var stats = database.getCollection(c).stats({indexDetails: index_info});
