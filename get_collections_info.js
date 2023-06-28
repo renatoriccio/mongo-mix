@@ -4,6 +4,7 @@
 // - storagesize
 // - avgObjSize
 // - totalIndexSize
+// - fragmentation
 // - wiredTiger file name
 //
 // Note: each size is in byte, for a sharded cluster this information is printed per shard
