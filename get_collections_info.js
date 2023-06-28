@@ -12,10 +12,12 @@
 var index_info = true
 
 // Set to true for sharded cluster 
-var isSharded = false
+var isSharded = true
 
 var shard_list = []
 var sharded_collection = []
+
+const  regex_system = "^system"
 
 if (isSharded) {
     db.getSiblingDB("config").getCollection("shards").find({}, { _id: 1 }).forEach(function (d) {
@@ -35,14 +37,16 @@ function convertMB(bytes){
     return (bytes / (1024*1024)).toFixed(2) + " MB"
 }
 
-function printCollStats(stats){
+function printCollStats(stats, sharded){
     fragmentationColl = stats.wiredTiger["block-manager"]["file bytes available for reuse"]
     print("-----------------------------------")
     print("count: " + stats.count)
     print("size: " + convertMB(stats.size))
     print("storageSize: " + convertMB(stats.storageSize))
     print("avgObjSize: " + stats.avgObjSize)
+    if(!sharded){
     print("fragmentation: " + convertMB(fragmentationColl))
+    }
     print("totalIndexSize: " + convertMB(stats.totalIndexSize))
 }
 
@@ -62,10 +66,13 @@ db.adminCommand({listDatabases: 1, nameOnly: true}).databases.forEach(function(d
     }
     var database = db.getSiblingDB(d.name);  
     database.getCollectionNames().forEach(function(c) { 
+        if(c.match(regex_system)){ return }
+
         var stats = database.getCollection(c).stats({indexDetails: index_info});
+
         var namespace = d.name + "." + c
         print("namespace: " + namespace)
-        printCollStats(stats)
+        printCollStats(stats, isSharded)
         total_collection_fragmentation += stats.wiredTiger["block-manager"]["file bytes available for reuse"]
 
         if(sharded_collection.indexOf(namespace) == -1 ){
@@ -86,7 +93,7 @@ db.adminCommand({listDatabases: 1, nameOnly: true}).databases.forEach(function(d
                 }
                 print("------")
                 print("shard: " + s)
-                printCollStats(nested_shard)
+                printCollStats(nested_shard, false)
                 print("file: " + nested_shard.wiredTiger.uri.replace("statistics:table:", ""))
                 
                 total_collection_fragmentation += nested_shard.wiredTiger["block-manager"]["file bytes available for reuse"]
